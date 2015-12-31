@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #
-# Description: Use the URL of a .deb (debian package) file and install
+# Description:  Use the URL of a .deb (debian package) file and install
 #
-# Author: Jose G. Faisca <jose.faisca@gmail.com>
+# Author:       Jose G. Faisca <jose.faisca@gmail.com>
 #
 
 # package url 
