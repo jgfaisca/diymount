@@ -1,7 +1,9 @@
 # diymount
-DiY automatically mounts storage devices
+DiY automatically mounts block devices
 #
-Debian package to automatically mounts storage devices when they are plugged in, and unmounts them when they are removed. The mountpoint (/media/diymount by default), filesystem types to consider, and mount options are configurable. When multiple devices are plugged in, the device with the highest priority is automatically selected, and/or the first device found at a given priority.  
+Debian package to automatically mounts storage devices when they are plugged in, and unmounts them when they are removed. Search for block devices with a specific NAME=value pair, and mount any devices wich are found. The mountpoin (/media/diymount by default), and also the filesystem type (TYPE=value) and drive label (LABEL=value) are configurable. 
+When multiple devices are plugged in, the device with the highest priority is automatically selected, and/or 
+the first device found at a given  priority.
 #
 The inotify (inode notify) Linux kernel subsystem is used to notice changes to the filesystem. Therefore, diymount requires a 2.6.13 (or newer) kernel.
 #
