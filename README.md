@@ -1,7 +1,7 @@
 # DiYmount
 DiYmount automatically mounts block devices
 #
-Debian package to automatically mounts block devices when they are plugged in, and unmounts them when they are removed. Search for block devices with a specific NAME=value pair, and mount any devices wich are found. The mountpoin (/media/diymount by default), and also the filesystem type (TYPE=value) and drive label (LABEL=value) are configurable. 
+Debian package to automatically mounts [block devices] when they are plugged in, and unmounts them when they are removed. Search for block devices with a specific NAME=value pair, and mount any devices wich are found. The mountpoin (/media/diymount by default), and also the filesystem type (TYPE=value) and drive label (LABEL=value) are configurable. 
 When multiple devices are plugged in, the device with the highest priority is automatically selected, and/or 
 the first device found at a given  priority.
 #
