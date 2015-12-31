@@ -1,0 +1,4 @@
+9e0d8a261a34730f01bec18fa9901a8f  usr/sbin/diymount-service
+51aeacfd3a3347097c9d622854d1c1cf  usr/sbin/diymount-bin
+1c25404a87d2287832f499ade1a878db  etc/diymount/diymount.conf
+49d737230db8cf8326a84344e693251f  etc/systemd/system/diymount.service

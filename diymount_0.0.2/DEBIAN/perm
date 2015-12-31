@@ -1,0 +1,6 @@
+#!/bin/sh
+if [ "$1" = "remove" ]; then
+	rm /usr/sbin/diymount-service
+	rm /usr/sbin/diymount-bin
+	systemctl disable diymount.service
+fi

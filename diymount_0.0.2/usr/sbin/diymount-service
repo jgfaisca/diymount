@@ -1,0 +1,77 @@
+#!/bin/bash
+
+# Description:  start/stop diymount-bin
+#
+# Authors:      Jose G. Faisca <jose.faisca@gmail.com>
+#
+
+BIN_DIR="/usr/sbin"
+PID_DIR="/var/run/diymount"
+PID_FILE="$PID_DIR/diymount.pid"
+LOG_DIR="/var/log/diymount"
+LOG_FILE="$LOG_DIR/diymount.log"
+
+# create directory
+function create_dir() {
+  DIR="$1"
+  [ -d $DIR ] || mkdir -p $DIR
+}
+
+# create file
+function create_file() {
+  FILE="$1"
+  if [ ! -f $FILE ]; then
+        touch $FILE
+        chmod 0644 $FILE
+  fi
+}
+
+# delete file
+function delete_file() {
+  FILE="$1"
+  [ -f $FILE ] && rm -f $FILE
+}
+
+# start service
+function do_start() {
+  if [ -f $PID_FILE ] ; then
+	return 1
+  else
+	delete_file $LOG_FILE
+  	create_dir $LOG_DIR
+	create_file $LOG_FILE
+	create_dir $PID_DIR
+	create_file $PID_FILE
+	nohup $BIN_DIR/diymount-bin > $LOG_FILE 2>&1&
+	echo $! > $PID_FILE
+  	return 0
+  fi
+}
+
+# stop service
+function do_stop() {
+ if [ -f $PID_FILE ] ; then
+	pid=$(cat $PID_FILE)
+   	$(kill $pid)
+	delete_file $PID_FILE
+	return 0
+ else
+	return 1
+ fi
+}
+
+case "$1" in
+  start)
+	do_start
+	;;
+  stop)
+	do_stop
+	;;
+  *)
+	echo "Usage: diymount-service [start|stop]" >&2
+	exit 1
+	;;
+esac
+:
+
+exit 0

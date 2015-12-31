@@ -1,0 +1,208 @@
+#!/bin/bash
+
+#
+# Description:  DiY automount block devices
+#
+# Authors:      Jose G. Faisca <jose.faisca@gmail.com>
+#
+
+PID_DIR="/var/run/diymount"
+PID_FILE="$PID_DIR/diymount.pid"
+LOG_DIR="/var/log/diymount"
+LOG_FILE="$LOG_DIR/diymount.log"
+CONF_DIR="/etc/diymount"
+CONF_FILE="$CONF_DIR/diymount.conf"
+DEVICES_DIR="/dev/disk/by-uuid"
+DEFAULT_MOUNT_POINT="/media/diymount"
+DEFAULT_LABEL="DIYMOUNT"
+
+# cleanup code
+function finish() {
+  sync
+  umount_disk
+  delete_file "$PID_FILE"
+  echo; echo "exit"
+  exit 0
+}
+
+# check if TYPE is supported (and enabled)
+function check_fstype() {
+  FS="$1"
+  cat /proc/filesystems | grep -v "nodev" | grep -w "$FS" > /dev/null
+  if [[ $? -eq 0 ]]; then
+    return 0
+  fi
+
+  ls /lib/modules/$(uname -r)/kernel/fs | grep -w "$FS" > /dev/null
+  if [[ $? -eq 0 ]]; then
+    return 0
+  fi
+
+  ls /sbin | grep -w "mount.$FS" > /dev/null
+  if [[ $? -eq 0 ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
+# reset variables
+function reset_vars(){
+  DISK_UUID="0"
+  DISK_LABEL="0"
+  DISK_DEVICE="0"
+  DISK_TYPE="0"
+  LNK_UUID="$DEVICES_DIR/0"
+}
+
+# print variables
+function print_vars(){
+  echo "UUID = $DISK_UUID"
+  echo "LABEL = $DISK_LABEL"
+  echo "DEVICE = $DISK_DEVICE"
+  echo "TYPE = $DISK_TYPE"
+}
+
+# block device attributes
+function blkid_attr() {
+  # uuid
+  if [ ! -z "$LABEL" ]; then
+      	DISK_UUID=$(blkid -c /dev/null -t LABEL=$LABEL -s UUID -o value -l)
+  elif [ ! -z "$TYPE" ]; then
+      	DISK_UUID=$(blkid -c /dev/null -t TYPE=$TYPE -s UUID -o value -l)
+  else
+	reset_vars
+    	return 1
+  fi
+  # link
+  if [[ $? -eq 0 ]]; then
+      	# devices link
+      	LNK_UUID="$DEVICES_DIR/$DISK_UUID"
+    	# label
+    	DISK_LABEL=$(blkid -c /dev/null -t UUID=$DISK_UUID -s LABEL -o value -l)
+    	# device
+    	DISK_DEVICE=$(blkid -c /dev/null -t UUID=$DISK_UUID -o device -l)
+      	# FS type
+      	DISK_TYPE=$(blkid -c /dev/null -t UUID=$DISK_UUID -s TYPE -o value -l)
+    	# print
+    	print_vars
+    	return 0
+  else
+	reset_vars
+      	return 1
+  fi
+}
+
+# ckeck mount_point
+function check_mounted() {
+  OUT=$(cat /proc/mounts | grep -s $MOUNT_POINT)
+  if [[  $? -eq 0  ]]; then
+      return 0
+  else
+      return 1
+  fi
+}
+
+# unmount
+function umount_disk() {
+  if check_mounted; then
+      umount $MOUNT_POINT
+  fi
+}
+
+# mount
+function mount_disk() {
+  if [[ "$DISK_UUID" != "0" ]]; then
+  OUT=$(cat /proc/mounts | grep $(readlink -f $LNK_UUID))
+    if [[ $? -eq 0 ]]; then
+      	# is mounted, bind to old mountpoint
+	OLDDIR=$(echo $OUT | awk '{ print $2; }')
+	mount --bind $OLDDIR $MOUNT_POINT > /dev/null
+    else
+      	# is not mounted
+	mount -U $DISK_UUID $MOUNT_POINT -t $DISK_TYPE > /dev/null
+    fi
+  sleep 2s
+  fi
+}
+
+# get devices link
+function get_lnkuuid() {
+  umount_disk
+  if blkid_attr; then
+    mount_disk
+  fi
+}
+
+# make sure only root can run the script
+function check_root() {
+  if [[ $EUID -ne 0 ]]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+# check  configuration
+function check_cfg() {
+  VAR="$1"
+  source $CONF_FILE
+  if [ -n "${!VAR}" ]; then
+        return 0
+  else
+        return 1
+  fi
+}
+
+# create directory
+function create_dir() {
+  DIR="$1"
+  [ -d $DIR ] || mkdir -p $DIR
+}
+
+# delete file
+function delete_file() {
+  FILE="$1"
+  [ -f $FILE ] && rm -f $FILE
+}
+
+trap finish EXIT
+reset_vars
+
+if ! check_root; then
+  echo "Permission denied. Only root can run the script!"
+  exit 1
+fi
+
+if ! check_cfg "MOUNT_POINT"; then
+  echo "MOUNT_POINT error, using default mountpoint $DEFAULT_MOUNT_POINT"
+  declare -r MOUNT_POINT=${DEFAULT_MOUNT_POINT}
+fi
+
+if ! check_cfg "LABEL"; then
+  if check_cfg "TYPE"; then
+      if ! check_fstype "$TYPE"; then
+   	 echo "TYPE=$TYPE is not supported, using default label $DEFAULT_LABEL"
+	 declare -r TYPE=""
+	 declare -r LABEL=$DEFAULT_LABEL
+      fi
+  else
+      echo "TYPE/LABEL error, using default label $DEFAULT_LABEL"
+      declare -r LABEL=$DEFAULT_LABEL
+  fi
+else
+   declare -r TYPE=""
+fi
+
+create_dir "$MOUNT_POINT"
+get_lnkuuid
+
+while true; do
+  [ -e "$LNK_UUID" ] && inotifywait -qq "$LNK_UUID"
+  echo 0
+  sleep 2s
+  get_lnkuuid
+  inotifywait -qq "$DEVICES_DIR"
+done
+
+exit 0

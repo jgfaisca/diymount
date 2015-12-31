@@ -1,0 +1,11 @@
+[Unit]
+Description=DiY autmount daemon
+
+[Service]
+Type=forking
+PIDFile=/var/run/diymount/diymount.pid
+ExecStart=/usr/sbin/diymount-service start
+ExecStop=/usr/sbin/diymount-service stop
+
+[Install]
+WantedBy=multi-user.target
