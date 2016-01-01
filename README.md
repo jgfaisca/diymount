@@ -9,3 +9,4 @@ The [inotify](https://lwn.net/Articles/604686/) (inode notify) Linux kernel subs
 #
 DiYmount is intended as a lightweight solution which is independent of a desktop environment. Users which would like an icon to appear when an device is plugged in should use other packages.
 #
+#
